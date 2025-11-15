@@ -1,20 +1,37 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import React from "react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
 import StepPersonal from "../StepPersonal";
 
-test("renders form and validates inputs", async () => {
-  const onNext = vi.fn();
-  render(<StepPersonal onNext={onNext} />);
-  const name = screen.getByLabelText(/Full name/i);
-  const email = screen.getByLabelText(/Email/i);
-  const btn = screen.getByRole("button", { name: /next/i });
+describe("StepPersonal Component", () => {
+  test("renders form and validates inputs individually", async () => {
+    const onNext = vi.fn();
+    render(<StepPersonal onNext={onNext} />);
 
-  // invalid submit
-  fireEvent.click(btn);
-  expect(await screen.findByText(/Required|must/i)).toBeTruthy();
+    const nameInput = screen.getByLabelText(/Full name/i);
+    const emailInput = screen.getByLabelText(/Email/i);
+    const nextButton = screen.getByRole("button", { name: /next/i });
 
-  // valid submit
-  fireEvent.change(name, { target: { value: "Ezekiel Mworekwa" } });
-  fireEvent.change(email, { target: { value: "e@example.com" } });
-  fireEvent.click(btn);
-  expect(onNext).toHaveBeenCalled();
+    const user = userEvent.setup();
+
+    // -------- Invalid submit --------
+    await user.click(nextButton);
+
+    // Check for validation errors
+    const errors = await screen.findAllByText(/Required|must/i);
+    expect(errors.length).toBe(2);
+
+    // -------- Valid submit --------
+    await user.type(nameInput, "Ezekiel Mworekwa");
+    await user.type(emailInput, "e@example.com");
+    await user.click(nextButton);
+
+    // onNext should be called once with correct data
+    expect(onNext).toHaveBeenCalledTimes(1);
+    expect(onNext).toHaveBeenCalledWith({
+      name: "Ezekiel Mworekwa",
+      email: "e@example.com",
+    });
+  });
 });

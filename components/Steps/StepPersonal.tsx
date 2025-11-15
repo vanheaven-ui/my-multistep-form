@@ -1,3 +1,4 @@
+import React from "react";
 import { useForm } from "react-hook-form";
 
 interface StepPersonalProps {
@@ -10,10 +11,7 @@ export default function StepPersonal({ onNext }: StepPersonalProps) {
     handleSubmit,
     formState: { errors },
   } = useForm({
-    defaultValues: {
-      name: "",
-      email: "",
-    },
+    defaultValues: { name: "", email: "" },
   });
 
   const onSubmit = (data: any) => {
@@ -31,10 +29,14 @@ export default function StepPersonal({ onNext }: StepPersonalProps) {
           id="name"
           type="text"
           {...register("name", { required: "Required" })}
+          aria-invalid={!!errors.name}
+          aria-describedby={errors.name ? "name-error" : undefined}
           className="border p-2 rounded"
         />
         {errors.name && (
-          <p className="text-red-500 text-sm">{errors.name.message}</p>
+          <p id="name-error" className="text-red-500 text-sm">
+            {errors.name.message}
+          </p>
         )}
       </div>
 
@@ -53,14 +55,18 @@ export default function StepPersonal({ onNext }: StepPersonalProps) {
               message: "Email must be valid",
             },
           })}
+          aria-invalid={!!errors.email}
+          aria-describedby={errors.email ? "email-error" : undefined}
           className="border p-2 rounded"
         />
         {errors.email && (
-          <p className="text-red-500 text-sm">{errors.email.message}</p>
+          <p id="email-error" className="text-red-500 text-sm">
+            {errors.email.message}
+          </p>
         )}
       </div>
 
-      {/* BUTTON */}
+      {/* NEXT BUTTON */}
       <button
         type="submit"
         className="bg-blue-600 text-white px-4 py-2 rounded"
