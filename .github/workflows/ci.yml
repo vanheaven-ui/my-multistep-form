@@ -12,10 +12,20 @@ jobs:
         with:
           node-version: "20"
 
-      - run: pnpm install
-      - run: pnpm lint
-      - run: pnpm typecheck
-      - run: pnpm test -- --coverage
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Run tests
+        run: pnpm test -- --coverage
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
