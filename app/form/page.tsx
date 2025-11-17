@@ -22,28 +22,27 @@ export default function FormPage() {
 
   const handleNextFromPersonal = () => next();
 
-  const handleSubmit = async (payload: FormSchemaType) => {
+  const handleSubmit = async (payload: FormSchemaType): Promise<void> => {
     try {
       const formData = new FormData();
 
       // Add text fields
       formData.append('fullName', payload.fullName);
       formData.append('email', payload.email);
-      formData.append('phone', payload.phone || "");
-      formData.append('address', payload.address ||"");
+      formData.append('phone', payload.phone || '');
+      formData.append('address', payload.address || '');
 
-      // Add attachments
-      (payload.attachments || []).forEach((file: File) => {
+      // Add attachments safely
+      payload.attachments?.forEach((file) => {
         formData.append('attachments', file);
       });
 
       const response = await fetch('/api/form', {
         method: 'POST',
         body: formData,
-        // Do NOT set Content-Type manually
       });
 
-      const result = await response.json();
+      const result: { ok: boolean; error?: string } = await response.json();
       console.log('Submission result:', result);
 
       if (!result.ok) throw new Error(result.error || 'Submission failed');
@@ -51,9 +50,12 @@ export default function FormPage() {
       localStorage.removeItem('multi_step_form_v1');
       goTo(FormStep.Personal);
       alert('Form submitted successfully!');
-    } catch (error: any) {
+    } catch (error) {
+      // Proper type guard instead of `any`
+      const errMsg =
+        error instanceof Error ? error.message : 'Unknown error occurred';
       console.error(error);
-      alert('Submit failed: ' + error.message);
+      alert('Submit failed: ' + errMsg);
     }
   };
 

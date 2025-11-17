@@ -1,5 +1,6 @@
 'use client';
-import { useReducer, useCallback, useEffect, useMemo } from 'react';
+
+import { useReducer, useCallback, useEffect } from 'react';
 import { FormStep } from './types';
 
 type State<T> = {
@@ -13,8 +14,9 @@ type Action<T> =
   | { type: 'GOTO'; step: FormStep }
   | { type: 'SET_DATA'; patch: Partial<T> };
 
-const totalSteps = Object.keys(FormStep).length / 2; // numeric keys only
+const totalSteps = Object.keys(FormStep).length / 2;
 
+// Reducer
 function reducer<T>(state: State<T>, action: Action<T>): State<T> {
   switch (action.type) {
     case 'NEXT':
@@ -30,21 +32,24 @@ function reducer<T>(state: State<T>, action: Action<T>): State<T> {
   }
 }
 
-export function useMultiStepForm<T extends Record<string, any>>(
-  initialData: T,
-) {
-  const storageKey = 'multiStepFormState';
-
-  // Load initial state from localStorage if it exists
-  const initialState: State<T> = useMemo(() => {
-    if (typeof window !== 'undefined') {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) return JSON.parse(raw) as State<T>;
+// ⬇️ THIS is the correct place to initialize from localStorage
+function initState<T>(initialData: T): State<T> {
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem('multiStepFormState');
+    if (raw) {
+      try {
+        return JSON.parse(raw) as State<T>;
+      } catch {
+        // ignore parse errors
+      }
     }
-    return { step: FormStep.Personal, data: initialData };
-  }, [initialData]);
+  }
 
-  const [state, dispatch] = useReducer(reducer<T>, initialState);
+  return { step: FormStep.Personal, data: initialData };
+}
+
+export function useMultiStepForm<T extends object>(initialData: T) {
+  const [state, dispatch] = useReducer(reducer<T>, initialData, initState);
 
   const next = useCallback(() => dispatch({ type: 'NEXT' }), []);
   const back = useCallback(() => dispatch({ type: 'BACK' }), []);
@@ -57,9 +62,8 @@ export function useMultiStepForm<T extends Record<string, any>>(
     [],
   );
 
-  // Persist to localStorage whenever state changes
   useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify(state));
+    localStorage.setItem('multiStepFormState', JSON.stringify(state));
   }, [state]);
 
   return {
@@ -70,6 +74,6 @@ export function useMultiStepForm<T extends Record<string, any>>(
     goTo,
     data: state.data,
     setData,
-    storageKey,
+    storageKey: 'multiStepFormState',
   };
 }

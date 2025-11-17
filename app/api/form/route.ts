@@ -44,11 +44,11 @@ export async function POST(req: Request) {
       fields,
       files: files.map((f) => ({ name: f.name, type: f.type, size: f.size })),
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error(err);
-    return NextResponse.json(
-      { ok: false, error: err.message },
-      { status: 500 },
-    );
+    // Safely extract message
+    const message =
+      err instanceof Error ? err.message : 'Unknown error occurred';
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

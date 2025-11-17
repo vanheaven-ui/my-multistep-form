@@ -1,25 +1,30 @@
-"use client";
-import React from "react";
-import { useForm } from "react-hook-form";
-import { ContactSchema } from "../../features/multi-step-form/schemas/formSchemas";
-import type { z } from "zod";
-import type { FormSchemaType } from "../../features/multi-step-form/schemas/formSchemas";
+'use client';
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { ContactSchema } from '../../features/multi-step-form/schemas/formSchemas';
+import type { z } from 'zod';
+import type { FormSchemaType } from '../../features/multi-step-form/schemas/formSchemas';
 
 type ContactData = z.infer<typeof ContactSchema>;
+
+interface StepContactProps {
+  defaultValues?: Partial<ContactData>;
+  onNext: (data: ContactData) => void;
+  onBack: () => void;
+  onSave: (patch: Partial<FormSchemaType>) => void;
+}
 
 export default function StepContact({
   defaultValues,
   onNext,
   onBack,
   onSave,
-}: {
-  defaultValues?: Partial<ContactData>;
-  onNext: (data: ContactData) => void;
-  onBack: () => void;
-  onSave: (patch: Partial<FormSchemaType>) => void;
-}) {
+}: StepContactProps) {
   const { register, handleSubmit } = useForm<ContactData>({
-    defaultValues: defaultValues as any,
+    defaultValues: {
+      phone: defaultValues?.phone ?? '',
+      address: defaultValues?.address ?? '',
+    },
   });
 
   const submit = (values: ContactData) => {
@@ -32,7 +37,7 @@ export default function StepContact({
       <div>
         <label className="block text-sm">Phone</label>
         <input
-          {...register("phone")}
+          {...register('phone')}
           aria-label="Phone"
           className="mt-1 w-full border rounded p-2"
         />
@@ -40,7 +45,7 @@ export default function StepContact({
       <div>
         <label className="block text-sm">Address</label>
         <input
-          {...register("address")}
+          {...register('address')}
           aria-label="Address"
           className="mt-1 w-full border rounded p-2"
         />

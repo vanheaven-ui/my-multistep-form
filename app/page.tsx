@@ -38,7 +38,7 @@ const ctaButtons: CTAButton[] = [
   { label: "Try the Form", href: "/form", variant: "primary" },
   {
     label: "View on GitHub",
-    href: "https://github.com/yourusername/my-multistep-form",
+    href: "https://github.com/vanheaven-ui/my-multistep-form",
     external: true,
     variant: "secondary",
   },
