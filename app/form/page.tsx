@@ -1,6 +1,5 @@
 'use client';
 import React from 'react';
-
 import StepPersonal from '../../components/form/StepPersonal';
 import StepContact from '../../components/form/StepContact';
 import StepFiles from '../../components/form/StepFiles';
@@ -18,23 +17,43 @@ export default function FormPage() {
       email: '',
       phone: '',
       address: '',
-      attachments: [],
+      attachments: [], // File[]
     });
 
-  const handleNextFromPersonal = (payload: any) => {
-    // data already saved in setData by child; we still call next to move forward
-    next();
-  };
+  const handleNextFromPersonal = () => next();
 
-  const handleSubmit = async (payload: Record<string, any>) => {
-    // Optimistic UI already handled in StepReview
+  const handleSubmit = async (payload: FormSchemaType) => {
     try {
-      // Reset local storage after successful submit
+      const formData = new FormData();
+
+      // Add text fields
+      formData.append('fullName', payload.fullName);
+      formData.append('email', payload.email);
+      formData.append('phone', payload.phone || "");
+      formData.append('address', payload.address ||"");
+
+      // Add attachments
+      (payload.attachments || []).forEach((file: File) => {
+        formData.append('attachments', file);
+      });
+
+      const response = await fetch('/api/form', {
+        method: 'POST',
+        body: formData,
+        // Do NOT set Content-Type manually
+      });
+
+      const result = await response.json();
+      console.log('Submission result:', result);
+
+      if (!result.ok) throw new Error(result.error || 'Submission failed');
+
       localStorage.removeItem('multi_step_form_v1');
       goTo(FormStep.Personal);
-    } catch (e) {
-      console.error(e);
-      alert('Submit failed (stub)');
+      alert('Form submitted successfully!');
+    } catch (error: any) {
+      console.error(error);
+      alert('Submit failed: ' + error.message);
     }
   };
 
@@ -45,36 +64,29 @@ export default function FormPage() {
       <StepContainer>
         {step === FormStep.Personal && (
           <StepPersonal
-            defaultValues={data as any}
+            defaultValues={data}
             onNext={handleNextFromPersonal}
-            onSave={(p) => setData(p)}
+            onSave={setData}
           />
         )}
-
         {step === FormStep.Contact && (
           <StepContact
-            defaultValues={data as any}
-            onBack={() => back()}
-            onNext={() => next()}
-            onSave={(p) => setData(p)}
+            defaultValues={data}
+            onBack={back}
+            onNext={next}
+            onSave={setData}
           />
         )}
-
         {step === FormStep.Files && (
           <StepFiles
-            defaultValues={{ attachments: (data as any).attachments }}
-            onBack={() => back()}
-            onNext={() => next()}
-            onSave={(p) => setData(p)}
+            defaultValues={{ attachments: data.attachments }}
+            onBack={back}
+            onNext={next}
+            onSave={setData}
           />
         )}
-
         {step === FormStep.Review && (
-          <StepReview
-            data={data}
-            onBack={() => back()}
-            onSubmit={(p) => handleSubmit(p)}
-          />
+          <StepReview data={data} onBack={back} onSubmit={handleSubmit} />
         )}
       </StepContainer>
     </main>

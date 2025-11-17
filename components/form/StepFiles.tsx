@@ -1,9 +1,9 @@
 'use client';
-import React, { useState } from "react";
-import { FormSchemaType } from "../../features/multi-step-form/schemas/formSchemas";
+import React, { useState, useEffect } from 'react';
+import { FormSchemaType } from '../../features/multi-step-form/schemas/formSchemas';
 
 interface StepFilesProps {
-  defaultValues: Pick<FormSchemaType, "attachments">;
+  defaultValues: Pick<FormSchemaType, 'attachments'>;
   onNext: () => void;
   onBack: () => void;
   onSave: (payload: Partial<FormSchemaType>) => void;
@@ -15,25 +15,20 @@ export default function StepFiles({
   onBack,
   onSave,
 }: StepFilesProps) {
-  // keep state as FormSchemaType attachments
-  const [attachments, setAttachments] = useState<{ name: string; size: number }[]>(
-    defaultValues.attachments || []
+  // Store actual File objects
+  const [attachments, setAttachments] = useState<File[]>(
+    defaultValues.attachments || [],
   );
+
+  // Save changes to parent whenever attachments change
+  useEffect(() => {
+    onSave({ attachments });
+  }, [attachments, onSave]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
 
-    const filesArray = Array.from(e.target.files).map((f) => ({
-      name: f.name,
-      size: f.size,
-    }));
-
-    setAttachments(filesArray);
-  };
-
-  const handleNext = () => {
-    onSave({ attachments });
-    onNext();
+    setAttachments(Array.from(e.target.files)); // Store actual File objects
   };
 
   return (
@@ -58,7 +53,7 @@ export default function StepFiles({
         </button>
         <button
           type="button"
-          onClick={handleNext}
+          onClick={onNext}
           className="px-3 py-2 bg-blue-600 text-white rounded"
         >
           Next
