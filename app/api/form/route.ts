@@ -1,40 +1,45 @@
-import { NextResponse } from "next/server";
-import { formSchema } from "../../../lib/validation/form-schema";
+import { NextResponse } from 'next/server';
+import formidable, { File } from 'formidable';
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+interface ParsedFields {
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+}
+
+interface ParsedFiles {
+  attachments?: File[];
+}
 
 export async function POST(req: Request) {
-  try {
-    const body = await req.json();
+  const form = formidable({ multiples: true });
 
-    // Validate incoming payload
-    const parsed = formSchema.safeParse(body);
+  return new Promise<NextResponse>((resolve, reject) => {
+    form.parse(
+      req as any,
+      (err: Error | null, fields: ParsedFields, files: ParsedFiles) => {
+        if (err) {
+          console.error(err);
+          return reject(
+            NextResponse.json(
+              { ok: false, error: err.message },
+              { status: 500 },
+            ),
+          );
+        }
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.flatten() },
-        { status: 400 }
-      );
-    }
+        console.log('Fields:', fields);
+        console.log('Files:', files.attachments);
 
-    const payload = parsed.data;
-
-    // TODO Step 2+3:
-    // - Save to database (Prisma)
-    // - Handle file storage
-    // - Return record ID
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Form received successfully",
-        payload,
+        resolve(NextResponse.json({ ok: true, fields, files }));
       },
-      { status: 200 }
     );
-  } catch (error) {
-    console.error("API /form POST error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
+  });
 }
