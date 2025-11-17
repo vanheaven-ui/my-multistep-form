@@ -1,93 +1,66 @@
-"use client";
+'use client';
+import { useReducer, useCallback, useEffect, useMemo } from 'react';
+import { FormStep } from './types';
 
-import { useReducer, useCallback, useEffect } from "react";
-import { FormStep } from "./types";
-
-type State = {
+type State<T> = {
   step: FormStep;
-  data: Record<string, unknown>;
+  data: T;
 };
 
-type Action =
-  | { type: "NEXT" }
-  | { type: "BACK" }
-  | { type: "GOTO"; step: FormStep }
-  | { type: "SET_DATA"; patch: Record<string, unknown> }
-  | { type: "SET_STATE"; state: State };
+type Action<T> =
+  | { type: 'NEXT' }
+  | { type: 'BACK' }
+  | { type: 'GOTO'; step: FormStep }
+  | { type: 'SET_DATA'; patch: Partial<T> };
 
-const totalSteps = Object.keys(FormStep).filter((k) => isNaN(Number(k))).length;
+const totalSteps = Object.keys(FormStep).length / 2; // numeric keys only
 
-function reducer(state: State, action: Action): State {
+function reducer<T>(state: State<T>, action: Action<T>): State<T> {
   switch (action.type) {
-    case "NEXT":
+    case 'NEXT':
       return { ...state, step: Math.min(state.step + 1, FormStep.Review) };
-    case "BACK":
+    case 'BACK':
       return { ...state, step: Math.max(state.step - 1, FormStep.Personal) };
-    case "GOTO":
+    case 'GOTO':
       return { ...state, step: action.step };
-    case "SET_DATA":
+    case 'SET_DATA':
       return { ...state, data: { ...state.data, ...action.patch } };
-    case "SET_STATE":
-      return action.state;
     default:
       return state;
   }
 }
 
-function saveToStorage(key: string, state: State) {
-  try {
-    localStorage.setItem(key, JSON.stringify(state));
-  } catch (err) {
-    console.warn("Failed to save multi-step form to localStorage", err);
-  }
-}
-
-function loadFromStorage(key: string): State | null {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    return JSON.parse(raw) as State;
-  } catch (err) {
-    console.warn("Failed to load multi-step form from localStorage", err);
-    return null;
-  }
-}
-
-export function useMultiStepForm(
-  initialData: Record<string, unknown> = {},
-  key = "multiStepForm",
+export function useMultiStepForm<T extends Record<string, any>>(
+  initialData: T,
 ) {
-  const storageKey = key;
+  const storageKey = 'multiStepFormState';
 
-  const [state, dispatch] = useReducer(reducer, {
-    step: FormStep.Personal,
-    data: initialData,
-  });
-
-  // Load saved state on mount
-  useEffect(() => {
-    const saved = loadFromStorage(storageKey);
-    if (saved) {
-      dispatch({ type: "SET_STATE", state: saved });
+  // Load initial state from localStorage if it exists
+  const initialState: State<T> = useMemo(() => {
+    if (typeof window !== 'undefined') {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) return JSON.parse(raw) as State<T>;
     }
-  }, [storageKey]);
+    return { step: FormStep.Personal, data: initialData };
+  }, [initialData]);
 
-  // Autosave whenever state changes (debounced)
-  useEffect(() => {
-    const handle = setTimeout(() => saveToStorage(storageKey, state), 300);
-    return () => clearTimeout(handle);
-  }, [state, storageKey]);
+  const [state, dispatch] = useReducer(reducer<T>, initialState);
 
-  const next = useCallback(() => dispatch({ type: "NEXT" }), []);
-  const back = useCallback(() => dispatch({ type: "BACK" }), []);
+  const next = useCallback(() => dispatch({ type: 'NEXT' }), []);
+  const back = useCallback(() => dispatch({ type: 'BACK' }), []);
   const goTo = useCallback(
-    (step: FormStep) => dispatch({ type: "GOTO", step }),
+    (step: FormStep) => dispatch({ type: 'GOTO', step }),
     [],
   );
   const setData = useCallback(
-    (patch: Record<string, unknown>) => dispatch({ type: "SET_DATA", patch }),
+    (patch: Partial<T>) => dispatch({ type: 'SET_DATA', patch }),
     [],
   );
+
+  // Persist to localStorage whenever state changes
+  useEffect(() => {
+    localStorage.setItem(storageKey, JSON.stringify(state));
+  }, [state]);
 
   return {
     step: state.step,

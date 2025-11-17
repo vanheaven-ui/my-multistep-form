@@ -35,10 +35,19 @@ export async function POST(req: Request) {
           );
         }
 
-        console.log('Fields:', fields);
-        console.log('Files:', files.attachments);
+        // Here you could save to Prisma DB
+        // const saved = await prisma.submission.create({ data: {...fields, files: JSON.stringify(files)} });
 
-        resolve(NextResponse.json({ ok: true, fields, files }));
+        console.log('Received fields:', fields);
+        console.log('Received files:', files.attachments);
+
+        resolve(
+          NextResponse.json({
+            ok: true,
+            fields,
+            files: files.attachments || [],
+          }),
+        );
       },
     );
   });
