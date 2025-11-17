@@ -1,10 +1,10 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 export const PersonalSchema = z.object({
   fullName: z
     .string()
-    .min(2, { message: "Full name must be at least 2 characters" }),
-  email: z.string().email({ message: "Invalid email address" }),
+    .min(2, { message: 'Full name must be at least 2 characters' }),
+  email: z.string().email({ message: 'Invalid email address' }),
 });
 
 export const ContactSchema = z.object({
@@ -13,9 +13,7 @@ export const ContactSchema = z.object({
 });
 
 export const FilesSchema = z.object({
-  attachments: z
-    .array(z.object({ name: z.string(), size: z.number() }))
-    .optional(),
+  attachments: z.array(z.instanceof(File)).optional(),
 });
 
 // Merge all for full form

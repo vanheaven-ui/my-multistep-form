@@ -1,25 +1,30 @@
-"use client";
-import React from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { PersonalSchema } from "../../features/multi-step-form/schemas/formSchemas";
-import type { z } from "zod";
-import type { FormSchemaType } from "../../features/multi-step-form/schemas/formSchemas";
+'use client';
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { PersonalSchema } from '../../features/multi-step-form/schemas/formSchemas';
+import type { z } from 'zod';
+import type { FormSchemaType } from '../../features/multi-step-form/schemas/formSchemas';
 
 type PersonalData = z.infer<typeof PersonalSchema>;
+
+interface StepPersonalProps {
+  defaultValues?: Partial<PersonalData>;
+  onNext: (data: PersonalData) => void;
+  onSave: (patch: Partial<FormSchemaType>) => void;
+}
 
 export default function StepPersonal({
   defaultValues,
   onNext,
   onSave,
-}: {
-  defaultValues?: Partial<PersonalData>;
-  onNext: (data: PersonalData) => void;
-  onSave: (patch: Partial<FormSchemaType>) => void;
-}) {
+}: StepPersonalProps) {
   const { register, handleSubmit, formState } = useForm<PersonalData>({
     resolver: zodResolver(PersonalSchema),
-    defaultValues: defaultValues as any,
+    defaultValues: {
+      fullName: defaultValues?.fullName ?? '',
+      email: defaultValues?.email ?? '',
+    },
   });
 
   const submit = (values: PersonalData) => {
@@ -32,7 +37,7 @@ export default function StepPersonal({
       <div>
         <label className="block text-sm">Full name</label>
         <input
-          {...register("fullName")}
+          {...register('fullName')}
           aria-label="Full name"
           className="mt-1 w-full border rounded p-2"
         />
@@ -46,7 +51,7 @@ export default function StepPersonal({
       <div>
         <label className="block text-sm">Email</label>
         <input
-          {...register("email")}
+          {...register('email')}
           aria-label="Email"
           className="mt-1 w-full border rounded p-2"
         />

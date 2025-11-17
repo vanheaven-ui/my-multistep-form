@@ -31,7 +31,7 @@ export default function RootLayout({
           links={[
             {
               label: "GitHub",
-              href: "https://github.com/yourusername/my-multistep-form",
+              href: "https://github.com/vanheaven-ui/my-multistep-form",
               external: true,
             },
             { label: "Docs", href: "/docs" },
