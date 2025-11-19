@@ -1,71 +1,76 @@
 'use client';
-import React from 'react';
-import { useForm } from 'react-hook-form';
-import { ContactSchema } from '../../features/multi-step-form/schemas/formSchemas';
-import type { z } from 'zod';
-import type { FormSchemaType } from '../../features/multi-step-form/schemas/formSchemas';
-
-type ContactData = z.infer<typeof ContactSchema>;
+import React, { useState } from 'react';
 
 interface StepContactProps {
-  defaultValues?: Partial<ContactData>;
-  onNext: (data: ContactData) => void;
-  onBack: () => void;
-  onSave: (patch: Partial<FormSchemaType>) => void;
+  defaultValues: {
+    phone: string;
+    address: string;
+  };
+  onSave: (data: { phone: string; address: string }) => void;
+  onNext: () => void;
+  onBack?: () => void;
+  disabled?: boolean;
 }
 
-export default function StepContact({
+const StepContact: React.FC<StepContactProps> = ({
   defaultValues,
+  onSave,
   onNext,
   onBack,
-  onSave,
-}: StepContactProps) {
-  const { register, handleSubmit } = useForm<ContactData>({
-    defaultValues: {
-      phone: defaultValues?.phone ?? '',
-      address: defaultValues?.address ?? '',
-    },
-  });
+  disabled = false,
+}) => {
+  const [phone, setPhone] = useState(defaultValues.phone || '');
+  const [address, setAddress] = useState(defaultValues.address || '');
 
-  const submit = (values: ContactData) => {
-    onSave(values);
-    onNext(values);
+  const handleNext = () => {
+    onSave({ phone, address });
+    onNext();
   };
 
   return (
-    <form onSubmit={handleSubmit(submit)} className="space-y-4">
+    <div className="space-y-4">
       <div>
-        <label className="block text-sm">Phone</label>
+        <label htmlFor="phone">Phone</label>
         <input
-          {...register('phone')}
-          aria-label="Phone"
-          className="mt-1 w-full border rounded p-2"
+          id="phone"
+          type="text"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          className="border p-1 rounded w-full"
         />
       </div>
       <div>
-        <label className="block text-sm">Address</label>
+        <label htmlFor="address">Address</label>
         <input
-          {...register('address')}
-          aria-label="Address"
-          className="mt-1 w-full border rounded p-2"
+          id="address"
+          type="text"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          className="border p-1 rounded w-full"
         />
       </div>
-
-      <div className="flex gap-2">
+      <div className="flex gap-2 mt-4">
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            disabled={disabled}
+            className="px-3 py-2 border rounded"
+          >
+            Back
+          </button>
+        )}
         <button
           type="button"
-          onClick={onBack}
-          className="px-4 py-2 border rounded"
-        >
-          Back
-        </button>
-        <button
-          type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded"
+          onClick={handleNext}
+          disabled={disabled}
+          className="px-3 py-2 bg-blue-600 text-white rounded"
         >
           Next
         </button>
       </div>
-    </form>
+    </div>
   );
-}
+};
+
+export default StepContact;

@@ -12,7 +12,8 @@ type Action<T> =
   | { type: 'NEXT' }
   | { type: 'BACK' }
   | { type: 'GOTO'; step: FormStep }
-  | { type: 'SET_DATA'; patch: Partial<T> };
+  | { type: 'SET_DATA'; patch: Partial<T> }
+  | { type: 'RESET'; initialData: T };
 
 const totalSteps = Object.keys(FormStep).length / 2;
 
@@ -27,12 +28,14 @@ function reducer<T>(state: State<T>, action: Action<T>): State<T> {
       return { ...state, step: action.step };
     case 'SET_DATA':
       return { ...state, data: { ...state.data, ...action.patch } };
+    case 'RESET':
+      return { step: FormStep.Personal, data: action.initialData };
     default:
       return state;
   }
 }
 
-// ⬇️ THIS is the correct place to initialize from localStorage
+// ⬇️ Initialize from localStorage
 function initState<T>(initialData: T): State<T> {
   if (typeof window !== 'undefined') {
     const raw = localStorage.getItem('multiStepFormState');
@@ -44,7 +47,6 @@ function initState<T>(initialData: T): State<T> {
       }
     }
   }
-
   return { step: FormStep.Personal, data: initialData };
 }
 
@@ -61,6 +63,10 @@ export function useMultiStepForm<T extends object>(initialData: T) {
     (patch: Partial<T>) => dispatch({ type: 'SET_DATA', patch }),
     [],
   );
+  const reset = useCallback(() => {
+    dispatch({ type: 'RESET', initialData });
+    localStorage.removeItem('multiStepFormState');
+  }, [initialData]);
 
   useEffect(() => {
     localStorage.setItem('multiStepFormState', JSON.stringify(state));
@@ -74,6 +80,7 @@ export function useMultiStepForm<T extends object>(initialData: T) {
     goTo,
     data: state.data,
     setData,
+    reset, 
     storageKey: 'multiStepFormState',
   };
 }

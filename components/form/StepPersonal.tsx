@@ -1,75 +1,76 @@
 'use client';
-import React from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { PersonalSchema } from '../../features/multi-step-form/schemas/formSchemas';
-import type { z } from 'zod';
-import type { FormSchemaType } from '../../features/multi-step-form/schemas/formSchemas';
-
-type PersonalData = z.infer<typeof PersonalSchema>;
+import React, { useState } from 'react';
 
 interface StepPersonalProps {
-  defaultValues?: Partial<PersonalData>;
-  onNext: (data: PersonalData) => void;
-  onSave: (patch: Partial<FormSchemaType>) => void;
+  defaultValues: {
+    fullName: string;
+    email: string;
+  };
+  onSave: (data: { fullName: string; email: string }) => void;
+  onNext: () => void;
+  onBack?: () => void;
+  disabled?: boolean;
 }
 
-export default function StepPersonal({
+const StepPersonal: React.FC<StepPersonalProps> = ({
   defaultValues,
-  onNext,
   onSave,
-}: StepPersonalProps) {
-  const { register, handleSubmit, formState } = useForm<PersonalData>({
-    resolver: zodResolver(PersonalSchema),
-    defaultValues: {
-      fullName: defaultValues?.fullName ?? '',
-      email: defaultValues?.email ?? '',
-    },
-  });
+  onNext,
+  onBack,
+  disabled = false,
+}) => {
+  const [fullName, setFullName] = useState(defaultValues.fullName || '');
+  const [email, setEmail] = useState(defaultValues.email || '');
 
-  const submit = (values: PersonalData) => {
-    onSave(values);
-    onNext(values);
+  const handleNext = () => {
+    onSave({ fullName, email });
+    onNext();
   };
 
   return (
-    <form onSubmit={handleSubmit(submit)} className="space-y-4">
+    <div className="space-y-4">
       <div>
-        <label className="block text-sm">Full name</label>
+        <label htmlFor="fullName">Full Name</label>
         <input
-          {...register('fullName')}
-          aria-label="Full name"
-          className="mt-1 w-full border rounded p-2"
+          id="fullName"
+          type="text"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          className="border p-1 rounded w-full"
         />
-        {formState.errors.fullName && (
-          <p className="text-sm text-red-600">
-            {String(formState.errors.fullName.message)}
-          </p>
-        )}
       </div>
-
       <div>
-        <label className="block text-sm">Email</label>
+        <label htmlFor="email">Email</label>
         <input
-          {...register('email')}
-          aria-label="Email"
-          className="mt-1 w-full border rounded p-2"
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="border p-1 rounded w-full"
         />
-        {formState.errors.email && (
-          <p className="text-sm text-red-600">
-            {String(formState.errors.email.message)}
-          </p>
-        )}
       </div>
-
-      <div className="flex gap-2">
+      <div className="flex gap-2 mt-4">
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            disabled={disabled}
+            className="px-3 py-2 border rounded"
+          >
+            Back
+          </button>
+        )}
         <button
-          type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded"
+          type="button"
+          onClick={handleNext}
+          disabled={disabled}
+          className="px-3 py-2 bg-blue-600 text-white rounded"
         >
           Next
         </button>
       </div>
-    </form>
+    </div>
   );
-}
+};
+
+export default StepPersonal;

@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { vi } from 'vitest';
-import { useMultiStepForm } from '../../../features/hooks/multi-step-form/useMultiStepForm';
-import { FormStep } from '../../../features/hooks/multi-step-form/types';
+import { useMultiStepForm } from '../../../../features/hooks/multi-step-form/useMultiStepForm';
+import { FormStep } from '../../../../features/hooks/multi-step-form/types';
 
 type TestForm = {
   fullName?: string;

@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import StepPersonal from '../../components/form/StepPersonal';
 import StepContact from '../../components/form/StepContact';
 import StepFiles from '../../components/form/StepFiles';
@@ -10,52 +10,50 @@ import Stepper from '../../components/form/Stepper';
 import StepContainer from '../../components/layout/StepContainer';
 import { FormSchemaType } from '../../features/multi-step-form/schemas/formSchemas';
 
-export default function FormPage() {
-  const { step, totalSteps, next, back, data, setData, goTo } =
+function FormPage() {
+  const { step, totalSteps, next, back, data, setData, goTo, reset } =
     useMultiStepForm<FormSchemaType>({
       fullName: '',
       email: '',
       phone: '',
       address: '',
-      attachments: [], // File[]
+      attachments: [],
     });
 
-  const handleNextFromPersonal = () => next();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
-  const handleSubmit = async (payload: FormSchemaType): Promise<void> => {
+  const handleSubmit = async (payload: FormSchemaType) => {
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+
     try {
       const formData = new FormData();
-
-      // Add text fields
       formData.append('fullName', payload.fullName);
       formData.append('email', payload.email);
-      formData.append('phone', payload.phone || '');
-      formData.append('address', payload.address || '');
+      if (payload.phone) formData.append('phone', payload.phone);
+      if (payload.address) formData.append('address', payload.address);
 
-      // Add attachments safely
       payload.attachments?.forEach((file) => {
         formData.append('attachments', file);
       });
 
-      const response = await fetch('/api/form', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const result: { ok: boolean; error?: string } = await response.json();
-      console.log('Submission result:', result);
-
+      const res = await fetch('/api/form', { method: 'POST', body: formData });
+      const result = await res.json();
       if (!result.ok) throw new Error(result.error || 'Submission failed');
 
+      // Reset form after successful submission
       localStorage.removeItem('multi_step_form_v1');
+      reset();
       goTo(FormStep.Personal);
-      alert('Form submitted successfully!');
-    } catch (error) {
-      // Proper type guard instead of `any`
-      const errMsg =
-        error instanceof Error ? error.message : 'Unknown error occurred';
-      console.error(error);
-      alert('Submit failed: ' + errMsg);
+      setSuccess(true);
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : 'Unknown error';
+      setError(errMsg);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -63,34 +61,72 @@ export default function FormPage() {
     <main className="max-w-2xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-4">Multi-step form (integrated)</h1>
       <Stepper step={step} total={totalSteps} />
+
       <StepContainer>
         {step === FormStep.Personal && (
           <StepPersonal
-            defaultValues={data}
-            onNext={handleNextFromPersonal}
-            onSave={setData}
+            defaultValues={{
+              fullName: data.fullName || '',
+              email: data.email || '',
+            }}
+            onNext={next}
+            onSave={(vals) => setData({ ...data, ...vals })}
+            disabled={loading}
           />
         )}
+
         {step === FormStep.Contact && (
           <StepContact
-            defaultValues={data}
+            defaultValues={{
+              phone: data.phone || '',
+              address: data.address || '',
+            }}
             onBack={back}
             onNext={next}
-            onSave={setData}
+            onSave={(vals) => setData({ ...data, ...vals })}
+            disabled={loading}
           />
         )}
+
         {step === FormStep.Files && (
           <StepFiles
-            defaultValues={{ attachments: data.attachments }}
+            defaultValues={{
+              attachments: data.attachments || [],
+            }}
             onBack={back}
             onNext={next}
-            onSave={setData}
+            onSave={(vals) => setData({ ...data, ...vals })}
+            disabled={loading}
           />
         )}
+
         {step === FormStep.Review && (
-          <StepReview data={data} onBack={back} onSubmit={handleSubmit} />
+          <StepReview
+            data={data}
+            onBack={back}
+            onSubmit={handleSubmit}
+            disabled={loading}
+          />
         )}
       </StepContainer>
+
+      {loading && (
+        <p className="text-blue-600 mt-4" role="status">
+          Submitting form...
+        </p>
+      )}
+      {error && (
+        <p className="text-red-600 mt-4" role="alert">
+          Error: {error}
+        </p>
+      )}
+      {success && (
+        <p className="text-green-600 mt-4" role="alert">
+          Form submitted successfully!
+        </p>
+      )}
     </main>
   );
 }
+
+export default FormPage;

@@ -1,34 +1,63 @@
 import { NextResponse } from 'next/server';
+import { prisma } from '../../../lib/prisma';
 
 // Type-safe interface for uploaded files
 interface UploadedFile {
   name: string;
   type: string;
   size: number;
-  data: ArrayBuffer;
+  data?: ArrayBuffer; // Optional if not storing binary in DB
+}
+
+// Type-safe interface for form fields
+interface FormFields {
+  fullName: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  [key: string]: string | undefined; // Allows dynamic assignment
 }
 
 export async function POST(req: Request) {
   try {
-    // Parse the incoming form data (Web API FormData)
+    // Parse incoming FormData
     const formData: FormData = await req.formData();
 
-    // Prepare containers for fields and files
-    const fields: Record<string, string> = {};
+    // Initialize form fields and files
+    const fields: FormFields = {
+      fullName: '',
+      email: '',
+    };
     const files: UploadedFile[] = [];
 
     // Iterate through all form entries
     for (const [key, value] of formData.entries()) {
       if (value instanceof File) {
-        const data = await value.arrayBuffer();
+        const arrayBuffer = await value.arrayBuffer();
         files.push({
           name: value.name,
           type: value.type,
           size: value.size,
-          data,
+          data: arrayBuffer,
         });
       } else if (typeof value === 'string') {
-        fields[key] = value;
+        // Safely assign only known keys
+        switch (key) {
+          case 'fullName':
+            fields.fullName = value;
+            break;
+          case 'email':
+            fields.email = value;
+            break;
+          case 'phone':
+            fields.phone = value;
+            break;
+          case 'address':
+            fields.address = value;
+            break;
+          default:
+            console.warn(`Unexpected field: ${key}`);
+        }
       }
     }
 
@@ -38,17 +67,31 @@ export async function POST(req: Request) {
       files.map((f) => f.name),
     );
 
-    // Respond with fields and file metadata
-    return NextResponse.json({
-      ok: true,
-      fields,
-      files: files.map((f) => ({ name: f.name, type: f.type, size: f.size })),
+    // Persist data in DB with Prisma
+    const submission = await prisma.formSubmission.create({
+      data: {
+        fullName: fields.fullName,
+        email: fields.email,
+        phone: fields.phone ?? null,
+        address: fields.address ?? null,
+        attachments: {
+          create: files.map((f) => ({
+            name: f.name,
+            type: f.type,
+            size: f.size,
+          })),
+        },
+      },
+      include: {
+        attachments: true,
+      },
     });
-  } catch (err: unknown) {
-    console.error(err);
-    // Safely extract message
+
+    return NextResponse.json({ ok: true, submission });
+  } catch (error) {
+    console.error('Form submission error:', error);
     const message =
-      err instanceof Error ? err.message : 'Unknown error occurred';
+      error instanceof Error ? error.message : 'Unknown server error';
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
