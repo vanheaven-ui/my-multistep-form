@@ -11,6 +11,9 @@ interface StepFilesProps {
   disabled?: boolean;
 }
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'application/pdf'];
+
 const StepFiles: React.FC<StepFilesProps> = ({
   defaultValues,
   onSave,
@@ -24,8 +27,16 @@ const StepFiles: React.FC<StepFilesProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
-    setAttachments(files);
-    onSave({ attachments: files });
+
+    // Filter files by allowed types and size
+    const validFiles = files.filter(
+      (file) => file.size <= MAX_FILE_SIZE && ALLOWED_TYPES.includes(file.type),
+    );
+
+    // Append new files to existing attachments
+    const newAttachments = [...attachments, ...validFiles];
+    setAttachments(newAttachments);
+    onSave({ attachments: newAttachments });
   };
 
   return (
@@ -43,6 +54,16 @@ const StepFiles: React.FC<StepFilesProps> = ({
           className="border p-1 rounded w-full"
           disabled={disabled}
         />
+
+        {attachments.length > 0 && (
+          <ul className="mt-2 list-disc pl-5 text-sm text-gray-700">
+            {attachments.map((file) => (
+              <li key={file.name}>
+                {file.name} ({Math.round(file.size / 1024)} KB)
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="flex gap-2 mt-4">
