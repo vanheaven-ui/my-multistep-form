@@ -1,59 +1,72 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
-// Type-safe interface for uploaded files
+// Configure S3 client
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+});
+
+const BUCKET_NAME = process.env.S3_BUCKET_NAME!;
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'application/pdf'];
+
+// Type-safe interfaces
 interface UploadedFile {
   name: string;
   type: string;
   size: number;
-  data?: ArrayBuffer; // Optional if not storing binary in DB
+  s3Url?: string;
 }
 
-// Type-safe interface for form fields
 interface FormFields {
   fullName: string;
   email: string;
   phone?: string;
   address?: string;
-  [key: string]: string | undefined; // Allows dynamic assignment
+  [key: string]: string | undefined;
 }
 
 export async function POST(req: Request) {
   try {
-    // Parse incoming FormData
     const formData: FormData = await req.formData();
 
-    // Initialize form fields and files
-    const fields: FormFields = {
-      fullName: '',
-      email: '',
-    };
+    const fields: FormFields = { fullName: '', email: '' };
     const files: UploadedFile[] = [];
 
-    // Iterate through all form entries
+    // Parse FormData
     for (const [key, value] of formData.entries()) {
       if (value instanceof File) {
-        const arrayBuffer = await value.arrayBuffer();
+        if (!ALLOWED_TYPES.includes(value.type)) {
+          return NextResponse.json(
+            { ok: false, error: `File type not allowed: ${value.type}` },
+            { status: 400 },
+          );
+        }
+
+        if (value.size > MAX_FILE_SIZE) {
+          return NextResponse.json(
+            { ok: false, error: `File too large: ${value.name}` },
+            { status: 400 },
+          );
+        }
+
         files.push({
           name: value.name,
           type: value.type,
           size: value.size,
-          data: arrayBuffer,
         });
       } else if (typeof value === 'string') {
-        // Safely assign only known keys
         switch (key) {
           case 'fullName':
-            fields.fullName = value;
-            break;
           case 'email':
-            fields.email = value;
-            break;
           case 'phone':
-            fields.phone = value;
-            break;
           case 'address':
-            fields.address = value;
+            fields[key] = value;
             break;
           default:
             console.warn(`Unexpected field: ${key}`);
@@ -61,13 +74,34 @@ export async function POST(req: Request) {
       }
     }
 
-    console.log('Received fields:', fields);
-    console.log(
-      'Received files:',
-      files.map((f) => f.name),
+    // Upload files in parallel to S3
+    const uploadedFiles = await Promise.all(
+      Array.from(formData.entries())
+        .filter(([, value]) => value instanceof File)
+        .map(async ([, file]) => {
+          const f = file as File;
+          const arrayBuffer = await f.arrayBuffer();
+          const key = `uploads/${Date.now()}-${f.name}`;
+
+          await s3.send(
+            new PutObjectCommand({
+              Bucket: BUCKET_NAME,
+              Key: key,
+              Body: new Uint8Array(arrayBuffer),
+              ContentType: f.type,
+            }),
+          );
+
+          return {
+            name: f.name,
+            type: f.type,
+            size: f.size,
+            s3Url: `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`,
+          };
+        }),
     );
 
-    // Persist data in DB with Prisma
+    // Persist form data + file metadata to DB
     const submission = await prisma.formSubmission.create({
       data: {
         fullName: fields.fullName,
@@ -75,10 +109,11 @@ export async function POST(req: Request) {
         phone: fields.phone ?? null,
         address: fields.address ?? null,
         attachments: {
-          create: files.map((f) => ({
+          create: uploadedFiles.map((f) => ({
             name: f.name,
             type: f.type,
             size: f.size,
+            url: f.s3Url!,
           })),
         },
       },
