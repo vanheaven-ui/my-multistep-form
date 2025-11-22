@@ -12,21 +12,48 @@ const defaultProps = {
 };
 
 describe('StepFiles', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('renders file input', () => {
     render(<StepFiles {...defaultProps} />);
     expect(screen.getByLabelText(/attachments/i)).toBeInTheDocument();
   });
 
-  it('calls onSave when files are selected', () => {
+  it('calls onSave when valid files are selected', () => {
     render(<StepFiles {...defaultProps} />);
     const fileInput = screen.getByLabelText(/attachments/i) as HTMLInputElement;
 
-    const file = new File(['file contents'], 'test-file.txt', {
-      type: 'text/plain',
+    const file = new File(['file contents'], 'test-file.png', {
+      type: 'image/png', // valid type
     });
     fireEvent.change(fileInput, { target: { files: [file] } });
 
     expect(defaultProps.onSave).toHaveBeenCalledWith({ attachments: [file] });
+  });
+
+  it('ignores files with invalid type or size', () => {
+    render(<StepFiles {...defaultProps} />);
+    const fileInput = screen.getByLabelText(/attachments/i) as HTMLInputElement;
+
+    const invalidTypeFile = new File(['data'], 'bad-file.txt', {
+      type: 'text/plain',
+    });
+    const oversizedFile = new File(
+      [new ArrayBuffer(6 * 1024 * 1024)],
+      'big-file.png',
+      {
+        type: 'image/png',
+      },
+    );
+
+    fireEvent.change(fileInput, {
+      target: { files: [invalidTypeFile, oversizedFile] },
+    });
+
+    // onSave should be called with empty array because all files are invalid
+    expect(defaultProps.onSave).toHaveBeenCalledWith({ attachments: [] });
   });
 
   it('calls onNext and onBack correctly', () => {
