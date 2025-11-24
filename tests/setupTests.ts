@@ -3,7 +3,12 @@ import { vi } from 'vitest';
 
 // --- Mock Next.js useRouter globally ---
 vi.mock('next/navigation', async () => {
-  const actual: any = await vi.importActual('next/navigation');
+  // Import the real module, typed as unknown first
+  const actual = (await vi.importActual('next/navigation')) as Record<
+    string,
+    unknown
+  >;
+
   return {
     ...actual,
     useRouter: vi.fn(() => ({
@@ -21,4 +26,4 @@ vi.mock('@/features/hooks/multi-step-form/useAuth', () => {
 });
 
 // --- Optional: Provide fetch globally if any component uses it ---
-(global as any).fetch = vi.fn();
+(globalThis as { fetch: unknown }).fetch = vi.fn();

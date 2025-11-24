@@ -1,10 +1,18 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
+import { vi, type Mock } from 'vitest'; // import Mock type using import style
 import DashboardContent from '../../app/dashboard/DashboardContent';
 
-// Mock global fetch
-global.fetch = vi.fn();
+// ------------------------
+// Global fetch mock
+// ------------------------
+type FetchFn = (input: RequestInfo, init?: RequestInit) => Promise<Response>;
+const mockFetch: Mock<FetchFn> = vi.fn();
+global.fetch = mockFetch as unknown as typeof fetch;
 
+// ------------------------
+// Sample submissions
+// ------------------------
 const mockSubmissions = [
   {
     id: '1',
@@ -18,22 +26,23 @@ const mockSubmissions = [
   },
 ];
 
+// ------------------------
+// Tests
+// ------------------------
 describe('DashboardContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('renders loading initially and then displays submissions', async () => {
-    (fetch as any).mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       json: async () => ({ ok: true, submissions: mockSubmissions }),
-    });
+    } as unknown as Response);
 
     render(<DashboardContent />);
 
-    // Initially loading
     expect(screen.getByText(/loading submissions/i)).toBeInTheDocument();
 
-    // Wait for submissions to render
     await waitFor(() =>
       expect(screen.getByText('Dashboard')).toBeInTheDocument(),
     );
@@ -43,7 +52,6 @@ describe('DashboardContent', () => {
     expect(screen.getByText('123456789')).toBeInTheDocument();
     expect(screen.getByText('123 Street')).toBeInTheDocument();
 
-    // Attachment link
     const attachmentLink = screen.getByText('file1.pdf');
     expect(attachmentLink).toHaveAttribute(
       'href',
@@ -52,7 +60,7 @@ describe('DashboardContent', () => {
   });
 
   it('shows error if fetch fails', async () => {
-    (fetch as any).mockRejectedValueOnce(new Error('Fetch failed'));
+    mockFetch.mockRejectedValueOnce(new Error('Fetch failed'));
 
     render(<DashboardContent />);
 
@@ -64,9 +72,9 @@ describe('DashboardContent', () => {
   });
 
   it('shows error if API returns ok: false', async () => {
-    (fetch as any).mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       json: async () => ({ ok: false }),
-    });
+    } as unknown as Response);
 
     render(<DashboardContent />);
 

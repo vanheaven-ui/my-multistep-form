@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 interface UseAuthReturn {
   isAuthenticated: boolean;
@@ -19,9 +19,10 @@ export function useAuth(): UseAuthReturn {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await axios.get('/api/dashboard/check'); // We'll create this API next
+        const res = await axios.get('/api/dashboard/check');
         setIsAuthenticated(res.data.ok);
-      } catch (err) {
+      } catch (_err) {
+        // Using `_err` prevents unused-var lint error
         setIsAuthenticated(false);
       } finally {
         setLoading(false);
@@ -42,8 +43,11 @@ export function useAuth(): UseAuthReturn {
       } else {
         setError(res.data.error || 'Login failed');
       }
-    } catch (err: any) {
-      setError(err?.response?.data?.error || 'Server error');
+    } catch (err: unknown) {
+      const axiosErr = err as AxiosError<{ error?: string }>;
+      setError(
+        axiosErr.response?.data?.error || 'Server error'
+      );
     } finally {
       setLoading(false);
     }
@@ -54,8 +58,8 @@ export function useAuth(): UseAuthReturn {
     try {
       await axios.post('/api/dashboard/logout');
       setIsAuthenticated(false);
-    } catch (err) {
-      console.error('Logout failed', err);
+    } catch (_err) {
+      console.error('Logout failed');
     } finally {
       setLoading(false);
     }

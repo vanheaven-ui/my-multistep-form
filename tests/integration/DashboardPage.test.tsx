@@ -1,24 +1,10 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { vi, Mock } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
-
-// Mock the useAuth hook
-vi.mock('../../features/hooks/multi-step-form/useAuth', () => ({
-  useAuth: vi.fn(),
-}));
-
-// Mock next/navigation
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: vi.fn(),
-    replace: vi.fn(),
-  }),
-}));
-
-import { useAuth } from '../../features/hooks/multi-step-form/useAuth';
+import { vi, type Mock } from 'vitest';
 import DashboardPage from '../../app/dashboard/page';
+import { useAuth } from '../../features/hooks/multi-step-form/useAuth';
 
-// Sample submissions data
+// --- Sample submissions ---
 const mockSubmissions = [
   {
     id: '1',
@@ -32,56 +18,82 @@ const mockSubmissions = [
   },
 ];
 
+// --- Mock useAuth hook ---
+vi.mock('../../features/hooks/multi-step-form/useAuth', () => ({
+  useAuth: vi.fn(),
+}));
+
+// --- Mock next/navigation ---
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+  }),
+}));
+
+// --- Mock fetch globally ---
+type FetchFn = (input: RequestInfo, init?: RequestInit) => Promise<Response>;
+const fetchMock: Mock<FetchFn> = vi.fn();
+global.fetch = fetchMock as unknown as typeof fetch;
+
+// --- Type-safe mock return for useAuth ---
+interface UseAuthMock {
+  isAuthenticated: boolean;
+  loading: boolean;
+  login: () => Promise<void>;
+  logout: () => Promise<void>;
+  error: string | null;
+}
+
 describe('DashboardPage Integration', () => {
+  const useAuthMock = useAuth as Mock<() => UseAuthMock>;
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('renders ProtectedRoute fallback when not authenticated', async () => {
-    (useAuth as Mock).mockReturnValue({
+    useAuthMock.mockReturnValue({
       isAuthenticated: false,
       loading: false,
-      login: vi.fn(),
-      logout: vi.fn(),
+      login: async () => {},
+      logout: async () => {},
       error: null,
     });
 
     render(<DashboardPage />);
 
-    // Check for the fallback text from ProtectedRoute
     await waitFor(() => {
       expect(screen.getByText(/checking authentication/i)).toBeInTheDocument();
     });
   });
 
   it('fetches and displays submissions when authenticated', async () => {
-    (useAuth as Mock).mockReturnValue({
+    useAuthMock.mockReturnValue({
       isAuthenticated: true,
       loading: false,
-      login: vi.fn(),
-      logout: vi.fn(),
+      login: async () => {},
+      logout: async () => {},
       error: null,
     });
 
-    // Mock global fetch for submissions
-    (global.fetch as any) = vi.fn().mockResolvedValue({
+    // Mock fetch response
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
       json: async () => ({ ok: true, submissions: mockSubmissions }),
-    });
+    } as unknown as Response);
 
     render(<DashboardPage />);
 
-    // Wait for the dashboard header
     await waitFor(() =>
       expect(screen.getByText('Dashboard')).toBeInTheDocument(),
     );
 
-    // Check submission data
     expect(screen.getByText('John Doe')).toBeInTheDocument();
     expect(screen.getByText('john@example.com')).toBeInTheDocument();
     expect(screen.getByText('123456789')).toBeInTheDocument();
     expect(screen.getByText('123 Street')).toBeInTheDocument();
 
-    // Check attachment link
     const attachmentLink = screen.getByText('file1.pdf');
     expect(attachmentLink).toHaveAttribute(
       'href',
@@ -90,18 +102,18 @@ describe('DashboardPage Integration', () => {
   });
 
   it('shows error if submissions fetch fails', async () => {
-    (useAuth as Mock).mockReturnValue({
+    useAuthMock.mockReturnValue({
       isAuthenticated: true,
       loading: false,
-      login: vi.fn(),
-      logout: vi.fn(),
+      login: async () => {},
+      logout: async () => {},
       error: null,
     });
 
-    // Mock failed fetch
-    (global.fetch as any) = vi.fn().mockResolvedValue({
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
       json: async () => ({ ok: false }),
-    });
+    } as unknown as Response);
 
     render(<DashboardPage />);
 
