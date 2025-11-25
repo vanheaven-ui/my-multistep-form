@@ -23,6 +23,9 @@ importers:
       axios:
         specifier: ^1.13.2
         version: 1.13.2
+      cookie:
+        specifier: ^1.0.2
+        version: 1.0.2
       formidable:
         specifier: ^3.5.4
         version: 3.5.4
