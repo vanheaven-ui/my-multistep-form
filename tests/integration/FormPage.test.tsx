@@ -12,49 +12,71 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+// Helper: create valid file
+const createValidFile = () => {
+  return new File(['file contents'], 'test-file.png', { type: 'image/png' });
+};
+
 describe('FormPage Integration', () => {
-  const fillPersonalStep = () => {
-    fireEvent.change(screen.getByLabelText(/full name/i), {
+  const fillPersonalStep = async () => {
+    await waitFor(() => screen.getByLabelText(/your full name/i));
+
+    fireEvent.change(screen.getByLabelText(/your full name/i), {
       target: { value: 'Alice' },
     });
-    fireEvent.change(screen.getByLabelText(/email/i), {
+    fireEvent.change(screen.getByLabelText(/email address/i), {
       target: { value: 'alice@example.com' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+
+    fireEvent.click(screen.getByRole('button', { name: /next step/i }));
+
+    await waitFor(() => screen.getByLabelText(/phone/i));
   };
 
-  const fillContactStep = () => {
+  const fillContactStep = async () => {
     fireEvent.change(screen.getByLabelText(/phone/i), {
       target: { value: '123456' },
     });
     fireEvent.change(screen.getByLabelText(/address/i), {
       target: { value: 'Test Street' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+
+    fireEvent.click(screen.getByRole('button', { name: /next step/i }));
+
+    await waitFor(() => screen.getByText(/document upload/i));
   };
 
-  const fillFilesStep = () => {
-    // Optional: mock adding a file if StepFiles requires it
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+  const fillFilesStep = async () => {
+    const fileInput = screen.getByLabelText(
+      /drag & drop files here/i,
+    ) as HTMLInputElement;
+    const file = createValidFile();
+
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() =>
+      expect(screen.getByText('test-file.png')).toBeInTheDocument(),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /next step/i }));
+
+    await waitFor(() => screen.getByText(/final review & submit/i));
   };
 
   it('submits the form successfully', async () => {
-    mockFetch.mockResolvedValueOnce({
-      json: async () => ({ ok: true }),
-    });
+    mockFetch.mockResolvedValueOnce({ json: async () => ({ ok: true }) });
 
     render(<FormPage />);
 
-    fillPersonalStep();
-    fillContactStep();
-    fillFilesStep();
+    await fillPersonalStep();
+    await fillContactStep();
+    await fillFilesStep();
 
-    // Now we are on Review step
-    fireEvent.click(screen.getByRole('button', { name: /submit/i }));
+    fireEvent.click(screen.getByRole('button', { name: /submit form/i }));
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent(
-        /form submitted successfully/i,
+        /form submitted successfully!/i,
       );
     });
   });
@@ -66,11 +88,11 @@ describe('FormPage Integration', () => {
 
     render(<FormPage />);
 
-    fillPersonalStep();
-    fillContactStep();
-    fillFilesStep();
+    await fillPersonalStep();
+    await fillContactStep();
+    await fillFilesStep();
 
-    fireEvent.click(screen.getByRole('button', { name: /submit/i }));
+    fireEvent.click(screen.getByRole('button', { name: /submit form/i }));
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent(/submission failed/i);

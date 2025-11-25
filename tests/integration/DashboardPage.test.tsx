@@ -85,10 +85,12 @@ describe('DashboardPage Integration', () => {
 
     render(<DashboardPage />);
 
+    // FIX APPLIED HERE: Match the exact text 'Analytics Dashboard 📊'
     await waitFor(() =>
-      expect(screen.getByText('Dashboard')).toBeInTheDocument(),
+      expect(screen.getByText('Analytics Dashboard 📊')).toBeInTheDocument(),
     );
 
+    // Continue with existing assertions
     expect(screen.getByText('John Doe')).toBeInTheDocument();
     expect(screen.getByText('john@example.com')).toBeInTheDocument();
     expect(screen.getByText('123456789')).toBeInTheDocument();

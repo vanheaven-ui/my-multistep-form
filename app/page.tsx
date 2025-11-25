@@ -56,8 +56,8 @@ function Home() {
           </h1>
           <p className="text-lg sm:text-xl text-zinc-600 dark:text-zinc-300 mb-10 max-w-3xl mx-auto">
             Quickly launch forms, dashboards, and APIs with a reusable, modular
-            **Next.js starter template**. Fully themeable, responsive, and ready
-            for production.
+            <strong><span className="ml-1">Next.js starter template</span></strong>. Fully themeable,
+            responsive, and ready for production.
           </p>
 
           <div className="flex flex-wrap gap-4 justify-center">
