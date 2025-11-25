@@ -47,7 +47,7 @@ const ModernInput: React.FC<{
           value={value}
           onChange={onChange}
           disabled={disabled}
-           aria-label={label}
+          aria-label={label}
           placeholder={!value ? label : ''} // Optional placeholder for better UX
           className="flex-grow p-2 bg-transparent focus:outline-none text-gray-800 text-lg placeholder-gray-400"
         />
@@ -83,7 +83,8 @@ const StepPersonal: React.FC<StepPersonalProps> = ({
         Personal Details
       </h2>
       <p className="text-gray-600">
-        Let's start with who you are. These fields are required to continue.
+        Let&apos;s start with who you are. These fields are required to
+        continue.
       </p>
 
       {/* Input Fields using the ModernInput Component */}
