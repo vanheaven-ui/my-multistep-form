@@ -114,7 +114,7 @@ I plan to implement the following features in upcoming versions:
 * **Drag-and-drop file upload support** for a better user experience.
 * **Mobile-friendly dashboard optimizations** for better accessibility on smaller devices.
 
-## 📄 License
+## License
 
 This project is licensed under the **[MIT License](/LICENCE.md)**.
 
