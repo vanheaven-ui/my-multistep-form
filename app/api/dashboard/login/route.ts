@@ -4,9 +4,9 @@ import { serialize } from 'cookie';
 
 // --- Environment Variables ---
 const DASHBOARD_EMAIL =
-  process.env.NEXT_PUBLIC_DASHBOARD_EMAIL || 'admin@example.com';
+  process.env.DASHBOARD_EMAIL;
 const DASHBOARD_PASSWORD =
-  process.env.NEXT_PUBLIC_DASHBOARD_PASSWORD || 'admin123';
+  process.env.DASHBOARD_PASSWORD;
 const JWT_SECRET = process.env.DASHBOARD_JWT_SECRET || 'supersecretkey';
 const JWT_EXPIRES_IN = '1h';
 
