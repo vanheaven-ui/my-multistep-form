@@ -36,7 +36,7 @@ describe('DashboardContent', () => {
     const skeleton = document.querySelector('.animate-pulse');
     expect(skeleton).toBeInTheDocument();
 
-    // 2️⃣ Wait for actual dashboard content (wrapped in waitFor to handle act warnings)
+    // 2️⃣ Wait for actual dashboard content
     await waitFor(() =>
       expect(
         screen.getByRole('heading', { name: /analytics dashboard/i }),
@@ -69,12 +69,12 @@ describe('DashboardContent', () => {
     );
   });
 
-  it('shows error if fetch fails', async () => {
+  it('shows error alert if fetch fails', async () => {
     mockFetch.mockRejectedValueOnce(new Error('Fetch failed'));
 
     render(<DashboardContent />);
 
-    // Wait for error alert to appear
+    // Wait for error alert (ModernAlert) to appear
     await waitFor(() => {
       const alert = screen.getByRole('alert');
       expect(alert).toBeInTheDocument();
@@ -82,7 +82,7 @@ describe('DashboardContent', () => {
     });
   });
 
-  it('shows error if API returns ok: false', async () => {
+  it('shows error alert if API returns ok: false', async () => {
     mockFetch.mockResolvedValueOnce({
       json: async () => ({ ok: false }),
     } as unknown as Response);
